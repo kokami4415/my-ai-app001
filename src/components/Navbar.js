@@ -4,9 +4,28 @@
 
 import Link from 'next/link'; // Next.jsのページ間リンク用コンポーネント
 import { usePathname } from 'next/navigation'; // 現在のURLパスを取得するフック
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function Navbar() {
   const pathname = usePathname();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!isMounted) return;
+      setUser(data?.user ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+      setUser(session?.user ?? null);
+    });
+    return () => {
+      isMounted = false;
+      subscription?.unsubscribe();
+    };
+  }, []);
 
   const navLinks = [
     { href: '/', label: 'レシピ生成' },
@@ -18,7 +37,7 @@ export default function Navbar() {
   return (
     <nav className="bg-white shadow-md mb-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-center h-16">
+        <div className="flex justify-between items-center h-16">
           <div className="flex space-x-8">
             {navLinks.map((link) => (
               <Link
@@ -33,6 +52,24 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
+          </div>
+          <div className="flex items-center space-x-3">
+            {user ? (
+              <>
+                <span className="text-sm text-gray-600 hidden sm:inline">{user.email}</span>
+                <button
+                  className="text-sm text-gray-600 underline"
+                  onClick={async () => {
+                    await supabase.auth.signOut();
+                    window.location.href = '/login';
+                  }}
+                >
+                  ログアウト
+                </button>
+              </>
+            ) : (
+              <Link className="text-sm text-gray-600 underline" href="/login">ログイン</Link>
+            )}
           </div>
         </div>
       </div>

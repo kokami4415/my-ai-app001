@@ -26,7 +26,24 @@ export default function LoginPage() {
   async function onSignUp(e) {
     e.preventDefault();
     setMessage('');
-    const { error } = await supabase.auth.signUp({ email, password });
+    const emailTrimmed = (email || '').trim();
+    const passwordTrimmed = (password || '').trim();
+
+    if (!emailTrimmed || !passwordTrimmed) {
+      setMessage('メールアドレスとパスワードを入力してください。');
+      return;
+    }
+    if (passwordTrimmed.length < 6) {
+      setMessage('パスワードは6文字以上にしてください。');
+      return;
+    }
+
+    const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined;
+    const { error } = await supabase.auth.signUp({
+      email: emailTrimmed,
+      password: passwordTrimmed,
+      options: { emailRedirectTo: redirectTo },
+    });
     if (error) {
       setMessage(`エラー: ${error.message}`);
       return;
@@ -53,6 +70,7 @@ export default function LoginPage() {
           ログイン
         </button>
         <button
+          type="button"
           onClick={onSignUp}
           className="w-full border py-2 rounded-md hover:bg-gray-50"
         >

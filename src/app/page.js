@@ -20,6 +20,8 @@ export default function HomePage() {
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [errorDetails, setErrorDetails] = useState('');
   const [checkedItems, setCheckedItems] = useState({}); // ★買い物リストのチェック状態を管理
+  const STORAGE_KEY = 'omakase_current_recipe_v1';
+  const [restored, setRestored] = useState(false);
 
   // 未ログイン時は /login へリダイレクト（暫定ガード）
   useEffect(() => {
@@ -33,6 +35,52 @@ export default function HomePage() {
       mounted = false;
     };
   }, [router]);
+
+  // ---- 画面状態の保存・復元 ----
+  // 保存
+  useEffect(() => {
+    // 復元前は書き込みしない
+    if (!restored) return;
+    const payload = {
+      selectedRecipe,
+      recipeDetails,
+      checkedItems,
+      v: 1,
+    };
+    try {
+      if (selectedRecipe && recipeDetails) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    } catch (_) {
+      // storage不可（Safariプライベート等）の場合は無視
+    }
+  }, [selectedRecipe, recipeDetails, checkedItems, restored]);
+
+  // 復元（初回のみ）
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const data = JSON.parse(raw);
+        if (data?.v === 1) {
+          setSelectedRecipe(data.selectedRecipe ?? null);
+          setRecipeDetails(data.recipeDetails ?? null);
+          setCheckedItems(data.checkedItems ?? {});
+        }
+      }
+    } catch (_) {}
+    setRestored(true);
+  }, []);
+
+  const handleFinishRecipe = () => {
+    setSelectedRecipe(null);
+    setRecipeDetails(null);
+    setCheckedItems({});
+    try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+    window.scrollTo(0, 0);
+  };
 
   // --- レシピ提案をリクエストする関数 ---
   const handleSuggestRecipes = async () => {
@@ -133,6 +181,14 @@ export default function HomePage() {
       {selectedRecipe && (
         <section className="mb-8 p-6 border-2 border-green-500 rounded-lg shadow-lg bg-white/80 backdrop-blur-sm">
           <h2 className="text-2xl font-bold mb-4 text-green-700">決定！今日の献立： {selectedRecipe.menu_name}</h2>
+          <div className="mb-4 flex justify-end">
+            <button
+              onClick={handleFinishRecipe}
+              className="px-4 py-2 text-sm rounded-md border text-gray-600 hover:bg-gray-50"
+            >
+              レシピを終了する
+            </button>
+          </div>
           {isLoadingDetails && <p className="text-lg text-center">AIが買い物リストとレシピを作成中... 🧑‍🍳</p>}
           {errorDetails && <p className="text-red-500">{errorDetails}</p>}
           {recipeDetails && (

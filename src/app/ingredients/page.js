@@ -93,7 +93,7 @@ export default function IngredientsPage() {
                 onClick={() => setActiveCategory(category)}
                 className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
                   activeCategory === category
-                    ? 'border-green-500 text-green-600'
+                    ? 'border-brand-orange text-brand-orange-dark'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
@@ -115,7 +115,7 @@ export default function IngredientsPage() {
           <button 
             onClick={handleSaveIngredients} 
             disabled={isLoading} 
-            className="w-full px-4 py-2 bg-blue-500 text-white rounded-md shadow-sm hover:bg-blue-600 disabled:bg-gray-400"
+            className="w-full px-4 py-2 bg-brand-orange text-white rounded-md shadow-sm hover:bg-brand-orange-dark disabled:bg-gray-400"
           >
             {isLoading ? '保存中...' : `${activeCategory}のリストを保存`}
           </button>

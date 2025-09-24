@@ -1,10 +1,10 @@
 // src/app/page.js
 
 'use client';
-
 import { useState } from 'react';
+import Image from 'next/image'; // Next.jsの画像コンポーネント
 
-export default function Home() {
+export default function HomePage() {
   // --- AI提案機能のState ---
   const [userRequest, setUserRequest] = useState(''); // ユーザーの追加要望
   const [suggestedRecipes, setSuggestedRecipes] = useState([]); // 提案されたレシピのリスト
@@ -89,11 +89,27 @@ export default function Home() {
 
   return (
     <main className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 font-sans">
-      <h1 className="text-4xl font-bold text-center mb-8">レシピおまかせ君</h1>
+      
+      {/* --- ★トップページのヘッダーセクション★ --- */}
+      <header className="text-center mb-10">
+        <p className="font-handwriting text-2xl text-brand-orange-dark mb-2">
+         あなたのキッチンの頼れるAIシェフ
+        </p>
+        <h1 className="text-5xl font-bold text-gray-800">レシピおまかせ君</h1>
+        <div className="mt-6 flex justify-center">
+          <Image 
+            src="/image/chef_icon.png" // 画像パスを実ファイルに合わせて修正
+            alt="レシピおまかせ君のキャラクター" 
+            width={200}
+            height={200}
+            priority // 優先的に読み込む
+          />
+        </div>
+      </header>
 
-      {/* --- レシピ詳細表示セクション --- */}
+      {/* --- レシピ詳細表示セクション (変更なし) --- */}
       {selectedRecipe && (
-        <section className="mb-8 p-6 border-2 border-green-500 rounded-lg shadow-lg bg-white">
+        <section className="mb-8 p-6 border-2 border-green-500 rounded-lg shadow-lg bg-white/80 backdrop-blur-sm">
           <h2 className="text-2xl font-bold mb-4 text-green-700">決定！今日の献立： {selectedRecipe.menu_name}</h2>
           {isLoadingDetails && <p className="text-lg text-center">AIが買い物リストとレシピを作成中... 🧑‍🍳</p>}
           {errorDetails && <p className="text-red-500">{errorDetails}</p>}
@@ -165,8 +181,8 @@ export default function Home() {
         </section>
       )}
 
-      {/* AI提案セクション */}
-      <section className="mb-8 p-6 border rounded-lg shadow-md bg-white">
+      {/* --- AI提案セクション (★ボタンの色を変更★) --- */}
+      <section className="mb-8 p-6 border rounded-lg shadow-md bg-white/80 backdrop-blur-sm">
         <h2 className="text-2xl font-semibold mb-4">今日の献立を考えよう</h2>
         <div className="space-y-4">
           <textarea
@@ -178,7 +194,7 @@ export default function Home() {
           <button
             onClick={handleSuggestRecipes}
             disabled={isLoadingSuggestion}
-            className="w-full px-4 py-3 bg-red-500 text-white font-bold rounded-md shadow-sm hover:bg-red-600 disabled:bg-gray-400"
+            className="w-full px-4 py-3 bg-brand-orange text-white font-bold rounded-md shadow-sm hover:bg-brand-orange-dark disabled:bg-gray-400"
           >
             {isLoadingSuggestion ? '考え中...' : '最適なレシピを提案してもらう！'}
           </button>
@@ -186,9 +202,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* レシピ提案結果の表示エリア */}
+      {/* --- レシピ提案結果 (★ボタンの色を変更★) --- */}
       {suggestedRecipes.length > 0 && (
-        <section className="mb-8 p-6 border rounded-lg shadow-md bg-green-50">
+        <section className="mb-8 p-6 rounded-lg bg-green-50/80 backdrop-blur-sm">
           <h2 className="text-2xl font-semibold mb-4">AIからの献立提案</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {suggestedRecipes.map((recipe, index) => (

@@ -213,7 +213,7 @@ export default function FamilyPage() {
         <div className="flex items-center">
           <button
             type="submit"
-            className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded mr-2"
+            className="bg-brand-orange hover:bg-brand-orange-dark text-white font-bold py-2 px-4 rounded mr-2"
             disabled={isLoading}
           >
             {isEditing ? '更新' : '登録'}
@@ -266,7 +266,7 @@ export default function FamilyPage() {
                     <td className="px-4 py-2 border-b">
                       <button
                         onClick={() => startEditing(member)}
-                        className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded mr-2"
+                        className="bg-brand-orange hover:bg-brand-orange-dark text-white font-bold py-1 px-3 rounded mr-2"
                         disabled={isLoading}
                       >
                         編集

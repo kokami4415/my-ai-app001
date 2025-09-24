@@ -18,6 +18,16 @@ const caveat = Caveat({
 export const metadata = {
   title: "レシピおまかせ君",
   description: "AIがあなたの冷蔵庫の食材から最適なレシピを提案します。",
+  icons: {
+    icon: [
+      { url: "/image/chef_fabicon.png", sizes: "32x32", type: "image/png" },
+      { url: "/image/chef_fabicon.png", sizes: "192x192", type: "image/png" },
+      { url: "/image/chef_fabicon.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: "/image/chef_fabicon.png",
+    apple: "/image/chef_fabicon.png",
+  },
+  manifest: "/manifest.webmanifest",
 };
 
 export default function RootLayout({ children }) {

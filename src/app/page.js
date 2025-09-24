@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import Image from 'next/image'; // Next.jsの画像コンポーネント
+import TitleImage from '@/components/TitleImage';
 
 export default function HomePage() {
   const router = useRouter();
@@ -156,16 +157,7 @@ export default function HomePage() {
       
       {/* --- ★トップページのヘッダーセクション★ --- */}
       <header className="text-center mb-10">
-        <div className="flex flex-col items-center mb-2">
-          <Image
-            src="/image/recipe_title.png"
-            alt="レシピおまかせ君 タイトル画像"
-            width={400}
-            height={80}
-            priority
-            className="mb-2"
-          />
-        </div>
+        <TitleImage className="mb-2" />
         <div className="mt-6 flex justify-center">
           <Image 
             src="/image/chef_icon.png" // 画像パスを実ファイルに合わせて修正

@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient'; // ブラウザ用クライアントを使用
 import { useRouter } from 'next/navigation';
+import TitleImage from '@/components/TitleImage';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -53,6 +54,7 @@ export default function LoginPage() {
 
   return (
     <main className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md mt-10">
+      <TitleImage className="mb-6" size="small" />
       <h1 className="text-2xl font-bold mb-6 text-center">ログイン / 新規登録</h1>
       <form className="space-y-4" onSubmit={onSignIn}>
         <div>

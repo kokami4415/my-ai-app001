@@ -1,10 +1,13 @@
 // src/app/page.js
 
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
 import Image from 'next/image'; // Next.jsの画像コンポーネント
 
 export default function HomePage() {
+  const router = useRouter();
   // --- AI提案機能のState ---
   const [userRequest, setUserRequest] = useState(''); // ユーザーの追加要望
   const [suggestedRecipes, setSuggestedRecipes] = useState([]); // 提案されたレシピのリスト
@@ -17,6 +20,19 @@ export default function HomePage() {
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [errorDetails, setErrorDetails] = useState('');
   const [checkedItems, setCheckedItems] = useState({}); // ★買い物リストのチェック状態を管理
+
+  // 未ログイン時は /login へリダイレクト（暫定ガード）
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (mounted && !data.user) {
+        router.replace('/login');
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
 
   // --- レシピ提案をリクエストする関数 ---
   const handleSuggestRecipes = async () => {
@@ -92,10 +108,16 @@ export default function HomePage() {
       
       {/* --- ★トップページのヘッダーセクション★ --- */}
       <header className="text-center mb-10">
-        <p className="font-handwriting text-2xl text-brand-orange-dark mb-2">
-         あなたのキッチンの頼れるAIシェフ
-        </p>
-        <h1 className="text-5xl font-bold text-gray-800">レシピおまかせ君</h1>
+        <div className="flex flex-col items-center mb-2">
+          <Image
+            src="/image/recipe_title.png"
+            alt="レシピおまかせ君 タイトル画像"
+            width={400}
+            height={80}
+            priority
+            className="mb-2"
+          />
+        </div>
         <div className="mt-6 flex justify-center">
           <Image 
             src="/image/chef_icon.png" // 画像パスを実ファイルに合わせて修正
@@ -183,7 +205,7 @@ export default function HomePage() {
 
       {/* --- AI提案セクション (★ボタンの色を変更★) --- */}
       <section className="mb-8 p-6 border rounded-lg shadow-md bg-white/80 backdrop-blur-sm">
-        <h2 className="text-2xl font-semibold mb-4">今日の献立を考えよう</h2>
+        <h2 className="text-2xl font-semibold mb-4">どんなメニューがいい？</h2>
         <div className="space-y-4">
           <textarea
             value={userRequest}

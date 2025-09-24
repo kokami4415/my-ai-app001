@@ -1,7 +1,7 @@
 // src/app/api/suggest-recipes/route.js
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { supabase } from '@/lib/supabaseClient';
+import { createSupabaseServerClient } from '@/lib/supabaseServer';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
@@ -9,15 +9,23 @@ export async function POST(request) {
   let familyMembers, ingredients; // tryの外で変数を宣言
 
   try {
-    // --- 1. データベースから全情報を取得 ---
-    // (この部分は変更なし)
-    const { data: familyData, error: familyError } = await supabase.from('family_members').select('*');
-    if (familyError) throw new Error(`家族情報の取得失敗: ${familyError.message}`);
-    familyMembers = familyData;
+    // --- 0. サーバー用Supabaseクライアント＆ユーザー取得 ---
+    const supabase = await createSupabaseServerClient(request);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return Response.json({ error: '未認証' }, { status: 401 });
 
-    const { data: ingredientsData, error: ingredientsError } = await supabase.from('ingredients').select('name');
+    // --- 1. データベースからユーザー自身の情報を取得 ---
+    const { data: familyData, error: familyError } = await supabase
+      .from('family_members')
+      .select('*');
+    if (familyError) throw new Error(`家族情報の取得失敗: ${familyError.message}`);
+    familyMembers = familyData || [];
+
+    const { data: ingredientsData, error: ingredientsError } = await supabase
+      .from('ingredients')
+      .select('name');
     if (ingredientsError) throw new Error(`食材リストの取得失敗: ${ingredientsError.message}`);
-    ingredients = ingredientsData;
+    ingredients = ingredientsData || [];
 
     // --- 2. フロントエンドからの追加要望を取得 ---
     // (この部分は変更なし)

@@ -1,11 +1,15 @@
 // src/app/api/family/[id]/route.js
 
-import { supabase } from '@/lib/supabaseClient';
+import { createSupabaseServerClient } from '@/lib/supabaseServer';
 
 // PUTリクエスト（特定の家族メンバーを更新）
 export async function PUT(request, { params }) {
   const { id } = params; // URLからIDを取得 (例: /api/family/5 -> idは5)
   try {
+    const supabase = await createSupabaseServerClient(request);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return Response.json({ error: '未認証' }, { status: 401 });
+
     const body = await request.json();
     const { name, age, gender, height, weight, dislikes } = body;
 
@@ -13,6 +17,7 @@ export async function PUT(request, { params }) {
       .from('family_members')
       .update({ name, age, gender, height, weight, dislikes })
       .eq('id', id) // URLから取得したIDと一致する行を対象に
+      .eq('user_id', user.id)
       .select();
 
     if (error) {
@@ -32,10 +37,15 @@ export async function PUT(request, { params }) {
 export async function DELETE(request, { params }) {
   const { id } = params;
   try {
+    const supabase = await createSupabaseServerClient(request);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return Response.json({ error: '未認証' }, { status: 401 });
+
     const { error } = await supabase
       .from('family_members')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', user.id);
 
     if (error) {
       console.error('メンバーの削除に失敗しました:', error);

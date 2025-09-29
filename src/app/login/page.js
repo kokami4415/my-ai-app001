@@ -50,6 +50,9 @@ export default function LoginPage() {
       <div className="mt-4 text-center">
         <Link href="/signup" className="text-sm text-brand-orange-dark hover:underline">新規登録はこちら</Link>
       </div>
+      <div className="mt-2 text-center">
+        <Link href="/reset-password" className="text-xs text-gray-600 hover:underline">パスワードをお忘れの方はこちら</Link>
+      </div>
       {message && <p className="mt-4 text-center text-red-500">{message}</p>}
     </main>
   );

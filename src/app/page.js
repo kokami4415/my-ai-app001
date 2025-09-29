@@ -14,6 +14,9 @@ export default function HomePage() {
   const [suggestedRecipes, setSuggestedRecipes] = useState([]); // 提案されたレシピのリスト
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
   const [errorSuggestion, setErrorSuggestion] = useState('');
+  const [pattern, setPattern] = useState('full_meal'); // 献立パターン
+  const LOADING_MESSAGES = ['今考えてるよー！', 'もうちょっと待ってね…', '楽しみにしててね！'];
+  const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
 
   // レシピ詳細機能のState
   const [selectedRecipe, setSelectedRecipe] = useState(null); // ユーザーが選んだレシピ
@@ -75,6 +78,18 @@ export default function HomePage() {
     setRestored(true);
   }, []);
 
+  // メニュー生成中のローディング文言を3秒ごとに切り替え
+  useEffect(() => {
+    if (!isLoadingSuggestion) {
+      setLoadingMsgIdx(0);
+      return;
+    }
+    const id = setInterval(() => {
+      setLoadingMsgIdx((prev) => (prev + 1) % LOADING_MESSAGES.length);
+    }, 3000);
+    return () => clearInterval(id);
+  }, [isLoadingSuggestion]);
+
   const handleFinishRecipe = () => {
     setSelectedRecipe(null);
     setRecipeDetails(null);
@@ -95,7 +110,7 @@ export default function HomePage() {
       const response = await fetch('/api/suggest-recipes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userRequest }),
+        body: JSON.stringify({ userRequest, pattern }),
       });
 
       if (!response.ok) {
@@ -217,33 +232,82 @@ export default function HomePage() {
               <div>
                 <h3 className="text-xl font-semibold mb-3 border-b pb-2">調理手順</h3>
                 <div className="space-y-6">
-                  {/* 主菜 */}
-                  <div>
-                    <h4 className="text-lg font-semibold text-gray-800">主菜: {selectedRecipe.dishes.main}</h4>
-                    <ol className="list-decimal list-inside space-y-2 mt-2 pl-4">
-                      {recipeDetails.cooking_steps.main.map((step, index) => (
-                        <li key={`main-${index}`}>{step}</li>
-                      ))}
-                    </ol>
-                  </div>
-                  {/* 副菜 */}
-                  <div>
-                    <h4 className="text-lg font-semibold text-gray-800">副菜: {selectedRecipe.dishes.side}</h4>
-                    <ol className="list-decimal list-inside space-y-2 mt-2 pl-4">
-                      {recipeDetails.cooking_steps.side.map((step, index) => (
-                        <li key={`side-${index}`}>{step}</li>
-                      ))}
-                    </ol>
-                  </div>
-                  {/* 汁物 */}
-                  <div>
-                    <h4 className="text-lg font-semibold text-gray-800">汁物: {selectedRecipe.dishes.soup}</h4>
-                    <ol className="list-decimal list-inside space-y-2 mt-2 pl-4">
-                      {recipeDetails.cooking_steps.soup.map((step, index) => (
-                        <li key={`soup-${index}`}>{step}</li>
-                      ))}
-                    </ol>
-                  </div>
+                  {(() => {
+                    const p = selectedRecipe.pattern || 'full_meal';
+                    if (p === 'full_meal') {
+                      return (
+                        <>
+                          <div>
+                            <h4 className="text-lg font-semibold text-gray-800">主菜: {selectedRecipe?.dishes?.main}</h4>
+                            <ol className="list-decimal list-inside space-y-2 mt-2 pl-4">
+                              {(recipeDetails?.cooking_steps?.main || []).map((step, index) => (
+                                <li key={`main-${index}`}>{step}</li>
+                              ))}
+                            </ol>
+                          </div>
+                          <div>
+                            <h4 className="text-lg font-semibold text-gray-800">副菜: {selectedRecipe?.dishes?.side}</h4>
+                            <ol className="list-decimal list-inside space-y-2 mt-2 pl-4">
+                              {(recipeDetails?.cooking_steps?.side || []).map((step, index) => (
+                                <li key={`side-${index}`}>{step}</li>
+                              ))}
+                            </ol>
+                          </div>
+                          <div>
+                            <h4 className="text-lg font-semibold text-gray-800">汁物: {selectedRecipe?.dishes?.soup}</h4>
+                            <ol className="list-decimal list-inside space-y-2 mt-2 pl-4">
+                              {(recipeDetails?.cooking_steps?.soup || []).map((step, index) => (
+                                <li key={`soup-${index}`}>{step}</li>
+                              ))}
+                            </ol>
+                          </div>
+                        </>
+                      );
+                    }
+                    if (p === 'one_bowl') {
+                      return (
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-800">一品: {selectedRecipe?.dishes?.single}</h4>
+                          <ol className="list-decimal list-inside space-y-2 mt-2 pl-4">
+                            {(recipeDetails?.cooking_steps?.single || []).map((step, index) => (
+                              <li key={`single-${index}`}>{step}</li>
+                            ))}
+                          </ol>
+                        </div>
+                      );
+                    }
+                    if (p === 'one_plate') {
+                      return (
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-800">ワンプレート: {selectedRecipe?.dishes?.plate}</h4>
+                          <ol className="list-decimal list-inside space-y-2 mt-2 pl-4">
+                            {(recipeDetails?.cooking_steps?.plate || []).map((step, index) => (
+                              <li key={`plate-${index}`}>{step}</li>
+                            ))}
+                          </ol>
+                        </div>
+                      );
+                    }
+                    if (p === 'bento') {
+                      const items = selectedRecipe?.dishes?.items || [];
+                      const stepsList = recipeDetails?.cooking_steps?.items || [];
+                      return (
+                        <div className="space-y-6">
+                          {items.map((name, idx) => (
+                            <div key={`item-${idx}`}>
+                              <h4 className="text-lg font-semibold text-gray-800">{name}</h4>
+                              <ol className="list-decimal list-inside space-y-2 mt-2 pl-4">
+                                {(stepsList[idx] || []).map((step, si) => (
+                                  <li key={`item-${idx}-step-${si}`}>{step}</li>
+                                ))}
+                              </ol>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               </div>
             </div>
@@ -255,6 +319,20 @@ export default function HomePage() {
       <section className="mb-8 p-6 border rounded-lg shadow-md bg-white/80 backdrop-blur-sm">
         <h2 className="text-2xl font-semibold mb-4">どんなメニューがいい？</h2>
         <div className="space-y-4">
+          {/* パターン選択 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">献立パターン</label>
+            <select
+              value={pattern}
+              onChange={(e) => setPattern(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md shadow-sm bg-white"
+            >
+              <option value="full_meal">しっかり一食（主菜・副菜・汁物）</option>
+              <option value="one_bowl">一品で満足！どんぶり・麺類</option>
+              <option value="one_plate">カフェ風ワンプレートランチ</option>
+              <option value="bento">品数豊富なお弁当</option>
+            </select>
+          </div>
           <textarea
             value={userRequest}
             onChange={(e) => setUserRequest(e.target.value)}
@@ -266,7 +344,7 @@ export default function HomePage() {
             disabled={isLoadingSuggestion}
             className="w-full px-4 py-3 bg-brand-orange text-white font-bold rounded-md shadow-sm hover:bg-brand-orange-dark disabled:bg-gray-400"
           >
-            {isLoadingSuggestion ? '考え中...' : '最適なレシピを提案してもらう！'}
+            {isLoadingSuggestion ? LOADING_MESSAGES[loadingMsgIdx] : '最適なレシピを提案してもらう！'}
           </button>
           {errorSuggestion && <p className="text-red-500 mt-2">{errorSuggestion}</p>}
         </div>
@@ -276,18 +354,75 @@ export default function HomePage() {
       {suggestedRecipes.length > 0 && (
         <section className="mb-8 p-6 rounded-lg bg-green-50/80 backdrop-blur-sm">
           <h2 className="text-2xl font-semibold mb-4">AIからの献立提案</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-4">
             {suggestedRecipes.map((recipe, index) => (
               <div key={index} className="flex flex-col justify-between border p-4 rounded-md bg-white shadow">
                 <div>
+                  <span className="inline-block mb-1 px-3 py-1 rounded-full bg-brand-orange text-white text-xs font-bold">
+                    {`🍽️ ${index + 1}つ目のご提案！`}
+                  </span>
                   <h3 className="text-lg font-bold text-green-800">{recipe.menu_name}</h3>
-                  <ul className="mt-2 text-sm list-disc list-inside">
-                    <li><strong>主菜:</strong> {recipe.dishes.main}</li>
-                    <li><strong>副菜:</strong> {recipe.dishes.side}</li>
-                    <li><strong>汁物:</strong> {recipe.dishes.soup}</li>
-                  </ul>
-                  <p className="mt-3 text-sm"><strong>カロリー:</strong> {recipe.estimated_calories}</p>
-                  <p className="mt-1 text-sm"><strong>栄養情報:</strong> {recipe.nutrition_info}</p>
+                  {/* 提案コメント */}
+                  {recipe.comment && (
+                    <div className="mt-2 relative">
+                      <div className="inline-block max-w-full bg-green-50 border border-green-200 text-gray-800 rounded-xl px-3 py-2 shadow-sm">
+                        <span className="text-sm">{recipe.comment}</span>
+                      </div>
+                      <span className="absolute -left-1 top-3 w-3 h-3 bg-green-50 border-l border-t border-green-200 rotate-45"></span>
+                    </div>
+                  )}
+                  {/* パターン別の表示 */}
+                  {(() => {
+                    const p = recipe.pattern || pattern;
+                    if (p === 'full_meal') {
+                      return (
+                        <ul className="mt-2 text-sm list-disc list-inside">
+                          <li><strong>主菜:</strong> {recipe?.dishes?.main}</li>
+                          <li><strong>副菜:</strong> {recipe?.dishes?.side}</li>
+                          <li><strong>汁物:</strong> {recipe?.dishes?.soup}</li>
+                        </ul>
+                      );
+                    }
+                    if (p === 'one_bowl') {
+                      return (
+                        <p className="mt-2 text-sm"><strong>一品:</strong> {recipe?.dishes?.single}</p>
+                      );
+                    }
+                    if (p === 'one_plate') {
+                      return (
+                        <p className="mt-2 text-sm"><strong>ワンプレート:</strong> {recipe?.dishes?.plate}</p>
+                      );
+                    }
+                    if (p === 'bento') {
+                      const items = recipe?.dishes?.items || [];
+                      return (
+                        <div className="mt-2 text-sm">
+                          <p className="font-semibold">お弁当おかず</p>
+                          <ul className="list-disc list-inside">
+                            {items.map((it, i) => (
+                              <li key={i}>{it}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                  {/* 栄養素 */}
+                  {recipe.nutrients && (
+                    <div className="mt-3 text-sm">
+                      {recipe.nutrients.summary && (
+                        <p className="mb-1"><strong>この一食の目安栄養素:</strong> {recipe.nutrients.summary}</p>
+                      )}
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                        {recipe.nutrients.energy && <p><strong>エネルギー:</strong> {recipe.nutrients.energy}</p>}
+                        {recipe.nutrients.protein && <p><strong>たんぱく質:</strong> {recipe.nutrients.protein}</p>}
+                        {recipe.nutrients.fat && <p><strong>脂質:</strong> {recipe.nutrients.fat}</p>}
+                        {recipe.nutrients.carbohydrates && <p><strong>炭水化物:</strong> {recipe.nutrients.carbohydrates}</p>}
+                        {recipe.nutrients.salt_equivalent && <p><strong>塩分相当量:</strong> {recipe.nutrients.salt_equivalent}</p>}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={() => handleSelectRecipe(recipe)}

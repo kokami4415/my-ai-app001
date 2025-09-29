@@ -226,12 +226,12 @@ export default function HomePage() {
       {selectedRecipe && (
         <section className="mb-8 p-6 border-2 border-green-500 rounded-lg shadow-lg bg-white/80 backdrop-blur-sm">
           <div className="mb-4">
-            <div className="relative w-full h-40 sm:h-56 md:h-64 lg:h-72 overflow-hidden rounded-md">
+            <div className="relative w-full h-40 sm:h-56 md:h-64 lg:h-72 overflow-hidden rounded-md bg-white">
               <Image
                 src="/image/cooking_icon.png"
                 alt="調理中のイメージ"
                 fill
-                style={{ objectFit: 'cover' }}
+                className="object-contain sm:object-cover"
                 priority
               />
             </div>
@@ -629,6 +629,9 @@ export default function HomePage() {
                         {recipe.nutrients.carbohydrates && <p><strong>炭水化物:</strong> {recipe.nutrients.carbohydrates}</p>}
                         {recipe.nutrients.salt_equivalent && <p><strong>塩分相当量:</strong> {recipe.nutrients.salt_equivalent}</p>}
                       </div>
+                      {recipe.cooking_time && (
+                        <p className="mt-2"><strong>調理時間:</strong> {recipe.cooking_time}</p>
+                      )}
                     </div>
                   )}
                 </div>

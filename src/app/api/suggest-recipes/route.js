@@ -56,6 +56,7 @@ export async function POST(request) {
     "pattern": "full_meal",
     "dishes": { "main": "主菜名", "side": "副菜名", "soup": "汁物名" },
     "comment": "家族情報や要望を踏まえた楽しい提案コメント（絵文字入り）",
+    "cooking_time": "約xx分",
     "nutrients": {
       "summary": "この一食の目安栄養素の説明",
       "energy": "xxx kcal",
@@ -78,6 +79,7 @@ export async function POST(request) {
     "pattern": "one_bowl",
     "dishes": { "single": "どんぶり/麺類の料理名" },
     "comment": "家族情報や要望を踏まえた楽しい提案コメント（絵文字入り）",
+    "cooking_time": "約xx分",
     "nutrients": {
       "summary": "この一食の目安栄養素の説明",
       "energy": "xxx kcal",
@@ -101,6 +103,7 @@ export async function POST(request) {
     "pattern": "one_plate",
     "dishes": { "plate": "プレートの内容（例: タコライス、サラダ、スープ付き など）" },
     "comment": "家族情報や要望を踏まえた楽しい提案コメント（絵文字入り）",
+    "cooking_time": "約xx分",
     "nutrients": {
       "summary": "この一食の目安栄養素の説明",
       "energy": "xxx kcal",
@@ -124,6 +127,7 @@ export async function POST(request) {
     "pattern": "bento",
     "dishes": { "items": ["おかず1", "おかず2", "おかず3"] },
     "comment": "家族情報や要望を踏まえた楽しい提案コメント（絵文字入り）",
+    "cooking_time": "約xx分",
     "nutrients": {
       "summary": "この一食の目安栄養素の説明",
       "energy": "xxx kcal",
@@ -171,6 +175,9 @@ export async function POST(request) {
       - 各献立に「comment」を含め、依頼内容(${userRequest})や家族情報を踏まえた楽しく親しみやすい文章にしてください。
       - 絵文字をほどよく使ってください（例: 🍚🥗🍜✨）。
       - 2〜3文、約40〜80文字を目安にしてください。
+      
+      ### 調理時間の要件
+      - 各献立に「cooking_time」を含め、全体の目安調理時間（例: 約20分）を日本語で簡潔に記載してください。
 
       ### JSON形式
       ${spec.jsonShape}
@@ -238,6 +245,10 @@ export async function POST(request) {
           if (!patched.comment) {
             if (patched.nutrition_info) patched.comment = `栄養ポイント: ${patched.nutrition_info} ✨`;
             else patched.comment = '';
+          }
+          // cooking_time補完
+          if (!patched.cooking_time) {
+            patched.cooking_time = '';
           }
           // nutrients補完
           if (!patched.nutrients) {

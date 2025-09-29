@@ -1,7 +1,7 @@
 // src/app/api/generate-recipe-details/route.js
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { supabase } from '@/lib/supabaseClient';
+import { createSupabaseServerClient } from '@/lib/supabaseServer';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
@@ -14,6 +14,20 @@ export async function POST(request) {
       console.error('GOOGLE_API_KEY が未設定です');
       return Response.json({ error: 'サーバー設定エラー: APIキー未設定' }, { status: 500 });
     }
+    // 家族人数を取得して想定人数を決める
+    let servingsLabel = '1人前';
+    try {
+      const supabase = await createSupabaseServerClient(request);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: familyData } = await supabase
+          .from('family_members')
+          .select('id')
+          .eq('user_id', user.id);
+        const count = Array.isArray(familyData) ? familyData.length : 0;
+        if (count > 0) servingsLabel = `${count}人前`;
+      }
+    } catch (_) {}
     // --- 1. フロントエンドからの情報を受け取る (変更なし) ---
     const body = await request.json();
     const { selectedMenu, ingredientsList } = body;
@@ -29,10 +43,15 @@ export async function POST(request) {
         header: `- 主菜: ${selectedMenu.dishes.main}\n- 副菜: ${selectedMenu.dishes.side}\n- 汁物: ${selectedMenu.dishes.soup}`,
         json: `{
   "shopping_list": ["品目1 (数量)", "品目2 (数量)"],
+  "ingredients": {
+    "main": ["主菜の材料1", "主菜の材料2"],
+    "side": ["副菜の材料1"],
+    "soup": ["汁物の材料1"]
+  },
   "cooking_steps": {
-    "main": ["主菜のステップ1", "主菜のステップ2"],
-    "side": ["副菜のステップ1"],
-    "soup": ["汁物のステップ1"]
+    "main": [{"step": "主菜のステップ1", "time": "5分", "heat": "中火"}],
+    "side": [{"step": "副菜のステップ1", "time": "3分", "heat": "弱火"}],
+    "soup": [{"step": "汁物のステップ1", "time": "4分", "heat": "強火"}]
   }
 }`
       },
@@ -40,8 +59,9 @@ export async function POST(request) {
         header: `- 一品: ${selectedMenu?.dishes?.single}`,
         json: `{
   "shopping_list": ["品目1 (数量)"],
+  "ingredients": { "single": ["材料1", "材料2"] },
   "cooking_steps": {
-    "single": ["一品料理のステップ1", "一品料理のステップ2"]
+    "single": [{"step": "一品料理のステップ1", "time": "5分", "heat": "中火"}]
   }
 }`
       },
@@ -49,8 +69,9 @@ export async function POST(request) {
         header: `- ワンプレート: ${selectedMenu?.dishes?.plate}`,
         json: `{
   "shopping_list": ["品目1 (数量)"],
+  "ingredients": { "plate": ["材料1", "材料2"] },
   "cooking_steps": {
-    "plate": ["ワンプレートの下準備", "盛り付けのポイント"]
+    "plate": [{"step": "下準備", "time": "5分", "heat": "-"}, {"step": "盛り付け", "time": "3分", "heat": "-"}]
   }
 }`
       },
@@ -58,8 +79,9 @@ export async function POST(request) {
         header: `- お弁当おかず: ${(selectedMenu?.dishes?.items || []).join(', ')}`,
         json: `{
   "shopping_list": ["品目1 (数量)"],
+  "ingredients": { "items": [["おかず1材料1"],["おかず2材料1"]] },
   "cooking_steps": {
-    "items": [["おかず1の手順1", "おかず1の手順2"], ["おかず2の手順1"]]
+    "items": [[{"step": "おかず1の手順1", "time": "5分", "heat": "中火"}], [{"step": "おかず2の手順1", "time": "3分", "heat": "弱火"}]]
   }
 }`
       }
@@ -78,7 +100,7 @@ export async function POST(request) {
       ${ingredientsList.join(', ')}
 
       ## 命令
-      上記の情報を基に、「買い物リスト」と「調理手順」を生成してください。
+      上記の情報を基に、「買い物リスト」と「調理手順」を生成してください。想定人数は「${servingsLabel}」です。材料の量や工程の記述はこの人数を前提にしてください。
 
       ### 厳格なルール
       - **最重要:** 出力は必ず指定されたJSON形式のみとし、前後の説明文、マークダウン(\`\`\`)、その他のテキストは一切含めないでください。
@@ -87,7 +109,10 @@ export async function POST(request) {
       ### 2. 調理手順 (cooking_steps)
       - 指定されたパターン(${pattern})に合わせたキー構成で返してください。
       - 例: full_mealなら main/side/soup、one_bowlなら single、one_plateなら plate、bentoなら items。
-      - 各料理（またはおかず）の手順は、配列で返してください。bentoの items は各おかずごとに配列の配列にしてください。
+      - 各ステップはオブジェクトで、\`step\`（手順の説明）, \`time\`（目安時間）, \`heat\`（火加減: 強火/中火/弱火または不要なら"-"）を含めてください。
+
+      ### 3. 各料理ごとの材料 (ingredients)
+      - 各料理（またはおかず）に必要な材料リストを配列で返してください。
 
       ### JSON形式
       ${stepsSpec.json}
@@ -142,7 +167,37 @@ export async function POST(request) {
       }
     }
     jsonText = jsonText.trim();
-    const recipeDetails = JSON.parse(jsonText);
+
+    // 簡易JSON修復: 配列内の未クォート値や要素間カンマ欠落を補正
+    const repairJsonLoose = (text) => {
+      let t = text;
+      // 0) 制御文字の無害化（改行/タブ以外の制御文字は空白に）
+      t = t.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, ' ');
+      // 1) 改行行で未クォートの配列要素をクォート化
+      //    例: \n    充電ケーブル\n  -> \n    "充電ケーブル"\n
+      t = t.replace(/\n(\s*)([^"\[\]\{\},\s][^\n\],]*)\s*(?=(,|\]|\n))/g, (m, sp, val) => `\n${sp}"${val.trim()}"`);
+      // 2) 隣接する文字列要素の間にカンマを補完
+      //    例: "..."\n  "..." -> "...",\n  "..."
+      t = t.replace(/"(\s*\n\s*)"/g, '",$1"');
+      // 3) 配列内の孤立した '",' を修正（空文字+カンマ化）もしくは削除
+      //    例: \n    ",\n  -> \n    ,\n
+      t = t.replace(/\n(\s*)",\s*\n/g, (m, sp) => `\n${sp},\n`);
+      // 4) 行末が '"' で次行が ']' の場合はカンマを付けない。それ以外で必要なら軽微に補正
+      t = t.replace(/"\s*(\n\s*)([^\]\},])/g, '",$1$2');
+      return t;
+    };
+
+    let recipeDetails;
+    try {
+      recipeDetails = JSON.parse(jsonText);
+    } catch (_) {
+      const repaired = repairJsonLoose(jsonText);
+      recipeDetails = JSON.parse(repaired);
+    }
+    // 人数情報を付加（未設定なら）
+    if (recipeDetails && !recipeDetails.servings) {
+      recipeDetails.servings = servingsLabel;
+    }
     return Response.json(recipeDetails);
 
   } catch (error) {

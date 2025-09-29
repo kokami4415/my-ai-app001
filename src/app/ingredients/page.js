@@ -2,11 +2,14 @@
 
 'use client';
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
 
 // カテゴリを定数として定義
 const CATEGORIES = ['肉・魚', '野菜・果物', '調味料', 'その他'];
 
 export default function IngredientsPage() {
+  const router = useRouter();
   // State管理を刷新
   const [activeCategory, setActiveCategory] = useState(CATEGORIES[0]); // 現在選択中のカテゴリ
   const [ingredientsData, setIngredientsData] = useState({}); // 全カテゴリの食材データをオブジェクトで保持
@@ -21,8 +24,16 @@ export default function IngredientsPage() {
 
   // ページ読み込み時に全食材を取得し、カテゴリ別に整形
   useEffect(() => {
-    fetchIngredients();
-  }, []);
+    let mounted = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (mounted && !data.user) {
+        router.replace('/login');
+        return;
+      }
+      fetchIngredients();
+    });
+    return () => { mounted = false; };
+  }, [router]);
 
   const fetchIngredients = async () => {
     setIsLoading(true);

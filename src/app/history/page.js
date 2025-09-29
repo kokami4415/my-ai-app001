@@ -2,32 +2,39 @@
 
 'use client';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient'; // Supabaseクライアントをインポート
 
 export default function HistoryPage() {
+  const router = useRouter();
   const [history, setHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchHistory = async () => {
+    let mounted = true;
+    const guardAndFetch = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (mounted && !data.user) {
+        router.replace('/login');
+        return;
+      }
       try {
-        const { data, error } = await supabase
+        const { data: rows, error } = await supabase
           .from('recipe_history')
           .select('*')
-          .order('created_at', { ascending: false }); // 新しい順に並び替え
-
+          .order('created_at', { ascending: false });
         if (error) throw error;
-        setHistory(data);
+        setHistory(rows);
       } catch (err) {
         setError('履歴の取得に失敗しました。');
       } finally {
         setIsLoading(false);
       }
     };
-
-    fetchHistory();
-  }, []);
+    guardAndFetch();
+    return () => { mounted = false; };
+  }, [router]);
 
   return (
     <main className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 font-sans">

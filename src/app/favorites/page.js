@@ -1,6 +1,7 @@
-'use client';
+"use client";
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function FavoritesPage() {
   const [items, setItems] = useState([]);
@@ -23,7 +24,19 @@ export default function FavoritesPage() {
     }
   };
 
-  useEffect(() => { fetchItems(); }, []);
+  useEffect(() => {
+    let mounted = true;
+    const guard = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (mounted && !data.user) {
+        router.replace('/login');
+        return;
+      }
+      fetchItems();
+    };
+    guard();
+    return () => { mounted = false; };
+  }, [router]);
 
   const removeItem = async (id) => {
     try {

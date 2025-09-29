@@ -1,19 +1,25 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 
 export default function ShoppingMemoPage() {
+  const router = useRouter();
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    let mounted = true;
     const load = async () => {
       setLoading(true);
       setError('');
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('未認証です。');
+        if (mounted && !user) {
+          router.replace('/login');
+          return;
+        }
         const { data, error } = await supabase
           .from('shopping_memos')
           .select('*')
@@ -28,7 +34,8 @@ export default function ShoppingMemoPage() {
       }
     };
     load();
-  }, []);
+    return () => { mounted = false; };
+  }, [router]);
 
   const save = async () => {
     setLoading(true);

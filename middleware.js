@@ -36,8 +36,8 @@ export async function middleware(req) {
   // Refresh session if expired - required for Server Components
   const { data: { user } } = await supabase.auth.getUser()
 
-  // if user is not signed in and the current path is not /login, redirect the user to /login
-  if (!user && req.nextUrl.pathname !== '/login') {
+  // if user is not signed in and the current path is not /login or /signup, redirect the user to /login
+  if (!user && req.nextUrl.pathname !== '/login' && req.nextUrl.pathname !== '/signup') {
     const url = req.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
@@ -54,6 +54,7 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    // Exclude API routes and auth pages from middleware
+    '/((?!_next/static|_next/image|favicon.ico|api|login|signup).*)',
   ],
 }

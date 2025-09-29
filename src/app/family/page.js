@@ -2,8 +2,11 @@
 
 'use client';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function FamilyPage() {
+  const router = useRouter();
   // 家族情報管理のState
   const [members, setMembers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -130,10 +133,20 @@ export default function FamilyPage() {
     });
   };
 
-  // 初回データ取得
+  // 初回データ取得（未ログイン時はガード）
   useEffect(() => {
-    fetchFamilyMembers();
-  }, []);
+    let mounted = true;
+    const guardAndFetch = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (mounted && !user) {
+        router.replace('/login');
+        return;
+      }
+      fetchFamilyMembers();
+    };
+    guardAndFetch();
+    return () => { mounted = false; };
+  }, [router]);
 
   // JSX
   return (

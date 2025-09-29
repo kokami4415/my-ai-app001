@@ -17,7 +17,8 @@ export default function ResetPasswordPage() {
         setMessage('メールアドレスを入力してください。');
         return;
       }
-      const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined;
+      // メール内のリンク先をパスワード再設定ページに変更
+      const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/update-password` : undefined;
       const { error } = await supabase.auth.resetPasswordForEmail(emailTrimmed, { redirectTo });
       if (error) {
         setMessage(`エラー: ${error.message}`);

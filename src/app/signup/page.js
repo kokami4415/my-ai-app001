@@ -31,6 +31,17 @@ export default function SignupPage() {
         setMessage('パスワード（確認）と一致しません。');
         return;
       }
+      // 事前に重複メールをチェック（サービスロールキー必須のAPI）
+      try {
+        const resp = await fetch('/api/auth/check-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: emailTrimmed }) });
+        if (resp.ok) {
+          const { exists } = await resp.json();
+          if (exists) {
+            setMessage('登録済みのメールアドレスです');
+            return;
+          }
+        }
+      } catch (_) {}
       const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined;
       const { error } = await supabase.auth.signUp({
         email: emailTrimmed,
@@ -38,7 +49,12 @@ export default function SignupPage() {
         options: { emailRedirectTo: redirectTo },
       });
       if (error) {
-        setMessage(`エラー: ${error.message}`);
+        const lower = String(error.message || '').toLowerCase();
+        if (lower.includes('already') || lower.includes('registered') || lower.includes('exist')) {
+          setMessage('登録済みのメールアドレスです');
+        } else {
+          setMessage(`エラー: ${error.message}`);
+        }
         return;
       }
       setMessage('確認メールを送信しました。メールボックスを確認してください。');
